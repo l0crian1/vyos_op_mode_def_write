@@ -18,19 +18,23 @@ def write_node_def(path, help_text=None, run_command=None, allowed=None):
         if allowed:
             f.write(f"allowed: {allowed}\n")
 
-def replace_includes(xml_text):
+def replace_includes(xml_text, base_path):
     include_pattern = re.compile(r'#include\s+<([^>]+)>')
+    
+    while include_pattern.search(xml_text):
+        xml_text = include_pattern.sub(lambda match: read_include_file(match.group(1), base_path), xml_text)
+    
+    return xml_text
 
-    def include_replacer(match):
-        include_file = match.group(1)
-        with open(include_file, 'r') as f:
-            return f.read()
-
-    return include_pattern.sub(include_replacer, xml_text)
+def read_include_file(include_file, base_path):
+    full_path = os.path.join(base_path, include_file)
+    print(f"Including file: {full_path}")
+    with open(full_path, 'r') as f:
+        return f.read()
 
 def parse_node(node, parent_path):
     if 'name' in node.attrib:
-        is_tag=False
+        is_tag = False
         node_name = node.attrib['name']
         node_path = os.path.join(parent_path, node_name)
         create_directory(node_path)
@@ -42,7 +46,7 @@ def parse_node(node, parent_path):
         if node_name not in EXCLUDE_NODES:  # Skip creating node.def for elements in EXCLUDE_NODES
             if node.tag == 'tagNode':
                 tag_node_path = os.path.join(node_path, 'node.tag')
-                is_tag=True
+                is_tag = True
                 create_directory(os.path.join(node_path, 'node.tag'))
                 completion_help_path = node.find('properties/completionHelp/path').text if node.find('properties/completionHelp/path') is not None else ""
                 completion_help_list = node.find('properties/completionHelp/list').text if node.find('properties/completionHelp/list') is not None else ""
@@ -85,10 +89,13 @@ def main():
         sys.exit(1)
 
     xml_file = sys.argv[1]
+    base_path = os.path.dirname(xml_file)
+    
     with open(xml_file, 'r') as f:
         xml_text = f.read()
 
-    xml_text = replace_includes(xml_text)
+    xml_text = replace_includes(xml_text, base_path)
+    print(xml_text)
     root = ET.fromstring(xml_text)
 
     base_path = '/opt/vyatta/share/vyatta-op/templates'
@@ -97,4 +104,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
