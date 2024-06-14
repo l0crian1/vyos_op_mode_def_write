@@ -30,6 +30,7 @@ def replace_includes(xml_text):
 
 def parse_node(node, parent_path):
     if 'name' in node.attrib:
+        is_tag=False
         node_name = node.attrib['name']
         node_path = os.path.join(parent_path, node_name)
         create_directory(node_path)
@@ -40,6 +41,8 @@ def parse_node(node, parent_path):
 
         if node_name not in EXCLUDE_NODES:  # Skip creating node.def for elements in EXCLUDE_NODES
             if node.tag == 'tagNode':
+                tag_node_path = os.path.join(node_path, 'node.tag')
+                is_tag=True
                 create_directory(os.path.join(node_path, 'node.tag'))
                 completion_help_path = node.find('properties/completionHelp/path').text if node.find('properties/completionHelp/path') is not None else ""
                 completion_help_list = node.find('properties/completionHelp/list').text if node.find('properties/completionHelp/list') is not None else ""
@@ -58,13 +61,17 @@ def parse_node(node, parent_path):
                 write_node_def(os.path.join(node_path, 'node.tag'), help_text, run_command, allowed)
                 # Write node.def before node.tag directory with only help
                 write_node_def(node_path, help_text)
+                
+                if node.find('children') is not None:
+                    for child in node.find('children'):
+                        parse_node(child, tag_node_path)
             else:
                 if node.tag == 'leafNode' or run_command:
                     write_node_def(node_path, help_text, run_command)
                 else:
                     write_node_def(node_path, help_text)
 
-        if node.find('children') is not None:
+        if node.find('children') is not None and not is_tag:
             for child in node.find('children'):
                 parse_node(child, node_path)
     else:
@@ -90,3 +97,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
