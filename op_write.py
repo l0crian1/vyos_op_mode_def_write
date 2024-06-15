@@ -28,7 +28,6 @@ def replace_includes(xml_text, base_path):
 
 def read_include_file(include_file, base_path):
     full_path = os.path.join(base_path, include_file)
-    print(f"Including file: {full_path}")
     with open(full_path, 'r') as f:
         return f.read()
 
@@ -95,7 +94,6 @@ def main():
         xml_text = f.read()
 
     xml_text = replace_includes(xml_text, base_path)
-    print(xml_text)
     root = ET.fromstring(xml_text)
 
     base_path = '/opt/vyatta/share/vyatta-op/templates'
